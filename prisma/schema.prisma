@@ -1,0 +1,224 @@
+// Walammi — Prisma schema for Neon Postgres (also works with local Postgres)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────── USERS ────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(READER)
+  banned        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  comments  Comment[]
+  reactions Reaction[]
+  partViews PartView[]
+  events    AnalyticsEvent[]
+
+  @@index([role])
+}
+
+enum Role {
+  READER
+  EDITOR
+  ADMIN
+}
+
+// NextAuth standard tables
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionToken])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ──────────────────────────── CONTENT ────────────────────────────
+
+model Series {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?  @db.Text
+  coverImage  String?
+  author      String?
+  genre       String?
+  status      SeriesStatus @default(ONGOING)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parts Part[]
+
+  @@index([genre])
+  @@index([featured])
+}
+
+enum SeriesStatus {
+  ONGOING
+  COMPLETED
+  HIATUS
+}
+
+model Part {
+  id          String   @id @default(cuid())
+  seriesId    String
+  title       String
+  order       Int      // 1-based position within the series
+  pdfUrl      String   @db.Text // R2 public link (or arbitrary https URL)
+  pdfKey      String?  // optional R2 object key when using signed private mode
+  pageCount   Int?
+  fileSizeKb  Int?
+  summary     String?  @db.Text
+  published   Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  series    Series     @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  reactions Reaction[]
+  views     PartView[]
+
+  @@unique([seriesId, order])
+  @@index([published])
+}
+
+// ──────────────────────────── SOCIAL ────────────────────────────
+
+model Comment {
+  id        String        @id @default(cuid())
+  partId    String
+  userId    String
+  parentId  String?       // threaded replies
+  body      String        @db.Text
+  status    CommentStatus @default(VISIBLE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  part     Part      @relation(fields: [partId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("Threads", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("Threads")
+
+  @@index([partId, status, createdAt])
+}
+
+enum CommentStatus {
+  VISIBLE
+  HIDDEN
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  partId    String
+  userId    String
+  kind      ReactionKind
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([partId, userId, kind])
+  @@index([partId, kind])
+}
+
+enum ReactionKind {
+  LIKE
+  LOVE
+  WOW
+  SAD
+  FIRE
+}
+
+// ──────────────────────────── ANALYTICS ────────────────────────────
+
+model PartView {
+  id        String   @id @default(cuid())
+  partId    String
+  userId    String?
+  sessionId String   // anonymous visitor session id (cookie)
+  createdAt DateTime @default(now())
+
+  part Part  @relation(fields: [partId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([partId, createdAt])
+  @@index([createdAt])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  type      EventType
+  path      String?
+  sessionId String?
+  userId    String?
+  partId    String?
+  seriesId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([type, createdAt])
+  @@index([createdAt])
+}
+
+enum EventType {
+  PAGE_VIEW
+  READ_START
+  READ_COMPLETE
+  DOWNLOAD_ATTEMPT
+  DOWNLOAD_BLOCKED
+  SIGNUP
+  LOGIN
+  COMMENT_ADDED
+  REACTION_ADDED
+  SEARCH
+}

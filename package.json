@@ -1,0 +1,38 @@
+{
+  "name": "walammi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only PDF story reading platform with series/parts, reactions, comments, analytics and admin dashboard. Neon + Cloudflare R2 + Vercel ready.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.mjs",
+    "db:studio": "prisma studio",
+    "db:setup": "prisma db push && node prisma/seed.mjs"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "aws4fetch": "^1.0.20",
+    "bcryptjs": "^3.0.2",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.544.0",
+    "next": "^15.5.4",
+    "next-auth": "^4.24.11",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "prisma": "^6.16.2",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.6.0"
+  }
+}

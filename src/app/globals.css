@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Thin red-tinted scrollbars for reader + panels */
+.sv-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.sv-scroll::-webkit-scrollbar-thumb {
+  background: rgb(228 228 231);
+  border-radius: 8px;
+}
+.sv-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(212 212 216);
+}
+.sv-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* The read-only PDF canvas: block dragging and text/image selection */
+.sv-readonly canvas {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  pointer-events: none !important;
+  max-width: 100%;
+}
+
+/* Print blocking for the reader route */
+@media print {
+  .sv-reader-page {
+    display: none !important;
+  }
+  .sv-print-notice {
+    display: block !important;
+  }
+}
+.sv-print-notice {
+  display: none;
+}
